@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏠 家庭助手</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 30px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .title {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .mic-btn {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            cursor: pointer;
+            font-size: 40px;
+            color: white;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        .mic-btn:hover {
+            transform: scale(1.1);
+        }
+        .mic-btn.recording {
+            animation: pulse 0.5s infinite;
+            background: #ff4757;
+        }
+        .status {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+        .input-area {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #eee;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .input-area input:focus {
+            border-color: #667eea;
+        }
+        .input-area button {
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .chat-history {
+            margin-top: 30px;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 15px;
+            max-width: 80%;
+        }
+        .message.user {
+            background: #f0f0f0;
+            margin-left: auto;
+        }
+        .message.assistant {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="avatar">🏠</div>
+        <h1 class="title">家庭助手</h1>
+        <p class="subtitle">按住麦克风说话，或直接打字</p>
+        
+        <button class="mic-btn" id="micBtn" onmousedown="startRecording()" onmouseup="stopRecording()">
+            🎤
+        </button>
+        
+        <p class="status" id="status">点击麦克风说话</p>
+        
+        <div class="input-area">
+            <input type="text" id="chatInput" placeholder="或者直接打字..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">发送</button>
+        </div>
+        
+        <div class="chat-history" id="chatHistory"></div>
+    </div>
+
+    <script>
+        let isRecording = false;
+        
+        function startRecording() {
+            isRecording = true;
+            document.getElementById('micBtn').classList.add('recording');
+            document.getElementById('status').textContent = '🎤 正在录音...';
+            
+            // 模拟录音（实际需要调用Web Audio API）
+            setTimeout(() => {
+                if (isRecording) {
+                    stopRecording();
+                }
+            }, 3000);
+        }
+        
+        function stopRecording() {
+            isRecording = false;
+            document.getElementById('micBtn').classList.remove('recording');
+            document.getElementById('status').textContent = '🎤 识别中...';
+            
+            // 模拟识别完成
+            setTimeout(() => {
+                // 这里应该调用后端API识别语音
+                document.getElementById('status').textContent = '💬 对话中...';
+            }, 1000);
+        }
+        
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            // 显示用户消息
+            addMessage(text, 'user');
+            input.value = '';
+            
+            // 模拟回复（实际需要调用后端API）
+            document.getElementById('status').textContent = '💬 思考中...';
+            
+            setTimeout(() => {
+                const responses = [
+                    '好的，我明白了！',
+                    '有什么我可以帮你的吗？',
+                    '今天过得怎么样？',
+                    '我在听着呢~'
+                ];
+                const reply = responses[Math.floor(Math.random() * responses.length)];
+                addMessage(reply, 'assistant');
+                document.getElementById('status').textContent = '点击麦克风说话';
+            }, 1500);
+        }
+        
+        function addMessage(text, type) {
+            const history = document.getElementById('chatHistory');
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            div.textContent = text;
+            history.appendChild(div);
+            history.scrollTop = history.scrollHeight;
+        }
+    </script>
+</body>
+</html>
