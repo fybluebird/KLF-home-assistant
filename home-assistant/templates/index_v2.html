@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏠 家庭助手</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(180deg, #a8e6cf 0%, #dcedc1 50%, #ffd3a5 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        /* 大标题 */
+        .header {
+            text-align: center;
+            padding: 30px 0;
+        }
+        .header h1 {
+            font-size: 36px;
+            color: #5d5d5d;
+            font-weight: 300;
+        }
+        .header p {
+            color: #888;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        /* 功能按钮区 */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+        
+        .feature-btn {
+            background: white;
+            border: none;
+            border-radius: 25px;
+            padding: 25px 15px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .feature-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        .feature-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .feature-btn .icon {
+            font-size: 48px;
+        }
+        .feature-btn .label {
+            font-size: 16px;
+            color: #888;
+            font-weight: 500;
+        }
+        
+        /* 对话区 */
+        .chat-area {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.9);
+            border-radius: 30px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        .chat-messages {
+            min-height: 150px;
+            max-height: 250px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        
+        .msg {
+            padding: 15px 20px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            max-width: 85%;
+            font-size: 18px;
+            line-height: 1.5;
+        }
+        .msg.user {
+            background: #5d9b84;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+        .msg.bot {
+            background: #f5f5f5;
+            color: #444;
+            border-bottom-left-radius: 5px;
+        }
+        
+        /* 输入区 */
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 18px 25px;
+            border: 3px solid #e0e0e0;
+            border-radius: 30px;
+            font-size: 18px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .input-area input:focus {
+            border-color: #5d9b84;
+        }
+        .input-area button {
+            padding: 18px 30px;
+            background: #5d9b84;
+            border: none;
+            border-radius: 30px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        
+        /* 反馈按钮 */
+        .feedback-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #ff9500;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        
+        /* 反馈弹窗 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal.show { display: flex; }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 25px;
+            width: 90%;
+            max-width: 400px;
+        }
+        .modal-content h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .modal-content textarea {
+            width: 100%;
+            height: 100px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            font-size: 16px;
+            resize: none;
+            margin-bottom: 15px;
+        }
+        .modal-btns {
+            display: flex;
+            gap: 10px;
+        }
+        .modal-btns button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .btn-cancel { background: #e0e0e0; color: #666; }
+        .btn-submit { background: #5d9b84; color: white; }
+        
+        /* 模型状态 */
+        .model-status {
+            text-align: center;
+            padding: 10px;
+            color: #888;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏠 家庭助手</h1>
+        <p>说话就能用</p>
+    </div>
+    
+    <div class="features">
+        <button class="feature-btn" onclick="doAction('story')">
+            <span class="icon">📖</span>
+            <span class="label">讲故事</span>
+        </button>
+        <button class="feature-btn" onclick="doAction('music')">
+            <span class="icon">🎵</span>
+            <span class="label">听首歌</span>
+        </button>
+        <button class="feature-btn" onclick="doAction('weather')">
+            <span class="icon">🌤️</span>
+            <span class="label">天气</span>
+        </button>
+        <button class="feature-btn" onclick="doAction('reminder')">
+            <span class="icon">⏰</span>
+            <span class="label">提醒</span>
+        </button>
+        <button class="feature-btn" onclick="doAction('joke')">
+            <span class="icon">😄</span>
+            <span class="label">笑话</span>
+        </button>
+        <button class="feature-btn" onclick="doAction('question')">
+            <span class="icon">❓</span>
+            <span class="label">提问</span>
+        </button>
+    </div>
+    
+    <div class="chat-area">
+        <div class="chat-messages" id="chatMessages">
+            <div class="msg bot">你好！我是家庭助手～点击上方图标或直接说话👆</div>
+        </div>
+        
+        <div class="input-area">
+            <input type="text" id="chatInput" placeholder="说话或打字..." onkeypress="if(event.key==='Enter')sendMsg()">
+            <button onclick="sendMsg()">发送</button>
+        </div>
+        
+        <div class="model-status" id="modelStatus">🤖 当前模型: 本地</div>
+    </div>
+    
+    <!-- 反馈按钮 -->
+    <button class="feedback-btn" onclick="showFeedback()">💬</button>
+    
+    <!-- 反馈弹窗 -->
+    <div class="modal" id="feedbackModal">
+        <div class="modal-content">
+            <h3>💬 反馈问题或建议</h3>
+            <textarea id="feedbackText" placeholder="请告诉我们哪里不好用，或者想要什么新功能..."></textarea>
+            <div class="modal-btns">
+                <button class="btn-cancel" onclick="hideFeedback()">取消</button>
+                <button class="btn-submit" onclick="submitFeedback()">提交</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const actions = {
+            story: '给我讲一个有趣的故事',
+            music: '放首歌来听',
+            weather: '今天天气怎么样',
+            reminder: '提醒我明天早上8点起床',
+            joke: '给我讲个笑话',
+            question: '为什么天空是蓝色的'
+        };
+        
+        function doAction(key) {
+            document.getElementById('chatInput').value = actions[key];
+            sendMsg();
+        }
+        
+        function sendMsg() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            addMsg(text, 'user');
+            input.value = '';
+            
+            // 显示思考中
+            const thinking = addMsg('🤔 思考中...', 'bot');
+            
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text: text})
+            })
+            .then(r => r.json())
+            .then(data => {
+                removeMsg(thinking);
+                addMsg(data.reply, 'bot');
+                document.getElementById('modelStatus').textContent = '🤖 模型: ' + (data.model || '本地');
+            })
+            .catch(e => {
+                removeMsg(thinking);
+                addMsg('网络出错了，请稍后重试', 'bot');
+            });
+        }
+        
+        function addMsg(text, type) {
+            const box = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = 'msg ' + type;
+            div.textContent = text;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+            return div;
+        }
+        
+        function removeMsg(el) {
+            if (el) el.remove();
+        }
+        
+        function showFeedback() {
+            document.getElementById('feedbackModal').classList.add('show');
+        }
+        
+        function hideFeedback() {
+            document.getElementById('feedbackModal').classList.remove('show');
+        }
+        
+        function submitFeedback() {
+            const text = document.getElementById('feedbackText').value.trim();
+            if (!text) {
+                alert('请输入内容');
+                return;
+            }
+            
+            fetch('/api/feedback', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text: text})
+            })
+            .then(r => r.json())
+            .then(data => {
+                alert('感谢反馈！🙏');
+                hideFeedback();
+                document.getElementById('feedbackText').value = '';
+            });
+        }
+        
+        // 语音识别
+        if ('webkitSpeechRecognition' in window) {
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'zh-CN';
+            recognition.onresult = e => {
+                document.getElementById('chatInput').value = e.results[0][0].transcript;
+                sendMsg();
+            };
+            
+            document.querySelector('.chat-area').addEventListener('click', e => {
+                if (e.target.tagName !== 'BUTTON') {
+                    // recognition.start(); // 可选：点击对话区开始录音
+                }
+            });
+        }
+    </script>
+</body>
+</html>

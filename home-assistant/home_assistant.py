@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
-家庭助手 - 完整版 v0.2
-功能：语音对话 + 提醒 + 讲故事 + 音乐 + 百科问答
+家庭助手 - 完整版 v0.3
+功能：语音对话 + 提醒 + 讲故事 + 音乐 + 百科 + 反馈系统
+支持本地+云端多模型
 """
 
 import subprocess
 import json
 import os
+import requests
 from datetime import datetime
 from pathlib import Path
 
@@ -15,44 +17,63 @@ SKILL_DIR = Path(__file__).parent
 MEMORY_DIR = SKILL_DIR / "memory"
 MEMORY_DIR.mkdir(exist_ok=True)
 
+# 导入模型管理器
+import sys
+sys.path.insert(0, str(SKILL_DIR))
+from model_manager import chat as model_chat, get_status, load_config
+
 # ========== 核心功能 ==========
 
 def chat(text):
-    """AI对话 - 用Ollama"""
-    try:
-        result = subprocess.run(
-            ["ollama", "run", "qwen:0.5b", text],
-            capture_output=True, text=True, timeout=60
-        )
-        return result.stdout.strip() if result.stdout else "抱歉，我没听清楚"
-    except Exception as e:
-        return f"对话出错: {str(e)[:50]}"
+    """AI对话 - 优先云端，本地备用"""
+    result = model_chat(text)
+    return result.get("reply", "抱歉，我没有听清楚")
 
 def tell_story(topic=None):
     """讲故事"""
     if not topic:
-        topics = ["小红帽", "三只小猪", "丑小鸭", "皇帝的新装"]
+        topics = ["小红帽", "三只小猪", "丑小鸭", "皇帝的新装", "白雪公主", "狼来了"]
         topic = topics[datetime.now().second % len(topics)]
     
     prompt = f"""请用适合5岁小朋友的方式，简单讲一下《{topic}》的故事。
 要求：
-- 简短（100字以内）
+- 简短（80字以内）
 - 温馨
 - 不要太复杂"""
     
-    return chat(prompt)
-
-def answer_question(question):
-    """百科问答"""
-    prompt = f"""请用简单易懂的方式回答这个问题（50字以内）：
-{question}"""
     return chat(prompt)
 
 def play_music(song_name=None):
     """播放音乐（模拟）"""
     if not song_name:
         return "你想听什么歌呢？"
-    return f"正在播放: {song_name}..."
+    return f"🎵 正在播放: {song_name}..."
+
+def get_weather(city="上海"):
+    """查天气"""
+    try:
+        # 用wttr.in免费天气
+        result = subprocess.run(
+            ["curl", "-s", f"wttr.in/{city}?format=%c%t+%h"],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.stdout:
+            return f"🌤️ {city}天气: {result.stdout.strip()}"
+    except:
+        pass
+    
+    # 备用：简单回复
+    return f"🌤️ {city}今天天气不错，适合出去玩！"
+
+def tell_joke():
+    """讲笑话"""
+    jokes = [
+        "为什么数学书总是很伤心？因为它们有太多的难题（难题）",
+        "小明的妈妈为什么买洗衣机？因为爸爸太会'甩'锅了！",
+        "为什么电脑很勤奋？因为它每天都要'工作'（作业）",
+        "有一天，小鸡问妈妈：妈妈妈妈，我们为什么是鸡？妈妈说：因为我们是'鸡'极向上！"
+    ]
+    return jokes[datetime.now().second % len(jokes)]
 
 def set_reminder(time, content):
     """设置提醒"""
@@ -74,13 +95,13 @@ def set_reminder(time, content):
     with open(path, "w") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     
-    return f"好的，已设置提醒：{time} {content}"
+    return f"⏰ 好的，已设置提醒：{time} {content}"
 
 # ========== 命令解析 ==========
 
 def parse_command(text):
     """解析用户命令"""
-    text = text.lower()
+    text_lower = text.lower()
     
     # 讲故事
     if any(k in text for k in ["讲故事", "故事", "讲个故事", "给我讲故事"]):
@@ -101,214 +122,42 @@ def parse_command(text):
                 break
         return "music", play_music(song)
     
+    # 天气
+    if any(k in text for k in ["天气", "气温", "温度", "晴天", "下雨"]):
+        import re
+        city_match = re.search(r'(北京|上海|广州|深圳|杭州|南京|成都|武汉)', text)
+        city = city_match.group(1) if city_match else "上海"
+        return "weather", get_weather(city)
+    
     # 提醒
-    if any(k in text for k in ["提醒", "叫我", "定个闹钟"]):
-        # 简单解析时间
+    if any(k in text for k in ["提醒", "叫我", "定个闹钟", "设个提醒"]):
         import re
         time_match = re.search(r'(\d+)[点时]', text)
         time = time_match.group(1) + ":00" if time_match else "未知时间"
         content = text
         return "reminder", set_reminder(time, content)
     
+    # 笑话
+    if any(k in text for k in ["笑话", "搞笑", "讲个笑话", "逗我笑"]):
+        return "joke", tell_joke()
+    
     # 百科问答
     if any(k in text for k in ["为什么", "什么是", "怎么做", "如何", "为什么"]):
-        return "qa", answer_question(text)
+        return "qa", chat(text)
     
     # 默认对话
     return "chat", chat(text)
 
 # ========== 网页服务 ==========
 
-from flask import Flask, jsonify, request, render_template_string
+from flask import Flask, jsonify, request, render_template
 
 app = Flask(__name__)
-
-HTML = '''
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏠 家庭助手</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .container {
-            background: white;
-            border-radius: 30px;
-            padding: 40px;
-            max-width: 500px;
-            width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        .avatar {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            margin: 0 auto 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 40px;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-        h1 { text-align: center; color: #333; margin-bottom: 5px; }
-        .subtitle { text-align: center; color: #888; margin-bottom: 20px; }
-        
-        .quick-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-        .quick-btn {
-            flex: 1;
-            min-width: 100px;
-            padding: 15px;
-            border: none;
-            border-radius: 15px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .quick-btn:hover { opacity: 0.9; transform: scale(0.98); }
-        
-        .chat-box {
-            background: #f8f9fa;
-            border-radius: 20px;
-            padding: 15px;
-            max-height: 300px;
-            overflow-y: auto;
-            margin-bottom: 15px;
-        }
-        .message { margin-bottom: 12px; padding: 12px; border-radius: 12px; max-width: 85%; }
-        .message.user { background: #667eea; color: white; margin-left: auto; }
-        .message.assistant { background: #f0f0f0; color: #333; }
-        .message .time { font-size: 10px; opacity: 0.7; margin-top: 5px; }
-        
-        .input-area { display: flex; gap: 10px; }
-        .input-area input {
-            flex: 1;
-            padding: 15px 20px;
-            border: 2px solid #eee;
-            border-radius: 25px;
-            font-size: 16px;
-            outline: none;
-        }
-        .input-area input:focus { border-color: #667eea; }
-        .input-area button {
-            padding: 15px 25px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border: none;
-            border-radius: 25px;
-            color: white;
-            cursor: pointer;
-        }
-        
-        .mic-btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: #ff4757;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            margin-bottom: 15px;
-        }
-        .mic-btn:active { transform: scale(0.95); }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="avatar">🏠</div>
-        <h1>家庭助手</h1>
-        <p class="subtitle">说话就能用</p>
-        
-        <div class="quick-btns">
-            <button class="quick-btn" onclick="quickCmd('讲故事')">📖 讲故事</button>
-            <button class="quick-btn" onclick="quickCmd('放歌')">🎵 放首歌</button>
-            <button class="quick-btn" onclick="quickCmd('提醒')">⏰ 设提醒</button>
-            <button class="quick-btn" onclick="quickCmd('百科')">❓ 问问题</button>
-        </div>
-        
-        <div class="chat-box" id="chatBox">
-            <div class="message assistant">
-                你好！我是家庭助手～可以直接说话或打字跟我聊天！
-                <div class="time">现在</div>
-            </div>
-        </div>
-        
-        <button class="mic-btn" onclick="startVoice()">🎤</button>
-        
-        <div class="input-area">
-            <input type="text" id="chatInput" placeholder="说话或打字..." onkeypress="if(event.key==='Enter')sendMsg()">
-            <button onclick="sendMsg()">发送</button>
-        </div>
-    </div>
-    
-    <script>
-        function quickCmd(cmd) {
-            document.getElementById('chatInput').value = cmd;
-            sendMsg();
-        }
-        
-        function sendMsg() {
-            const input = document.getElementById('chatInput');
-            const text = input.value.trim();
-            if (!text) return;
-            
-            addMsg(text, 'user');
-            input.value = '';
-            
-            fetch('/api/chat', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({text: text})
-            })
-            .then(r => r.json())
-            .then(data => {
-                addMsg(data.reply, 'assistant');
-            });
-        }
-        
-        function addMsg(text, type) {
-            const box = document.getElementById('chatBox');
-            const div = document.createElement('div');
-            div.className = `message ${type}`;
-            const time = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
-            div.innerHTML = `${text}<div class="time">${time}</div>`;
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
-        }
-        
-        function startVoice() {
-            if (!('webkitSpeechRecognition' in window)) {
-                alert('浏览器不支持语音，请打字');
-                return;
-            }
-            const r = new webkitSpeechRecognition();
-            r.lang = 'zh-CN';
-            r.onresult = e => {
-                document.getElementById('chatInput').value = e.results[0][0].transcript;
-                sendMsg();
-            };
-            r.start();
-        }
-    </script>
-</body>
-</html>
-'''
+app.template_folder = str(SKILL_DIR / "templates")
 
 @app.route('/')
 def index():
-    return render_template_string(HTML)
+    return render_template('index_v2.html')
 
 @app.route('/api/chat', methods=['POST'])
 def chat_api():
@@ -317,14 +166,63 @@ def chat_api():
     
     cmd_type, reply = parse_command(text)
     
+    # 获取当前模型
+    status = get_status()
+    model_name = status.get("current", "ollama")
+    
     return jsonify({
         "type": cmd_type,
-        "reply": reply
+        "reply": reply,
+        "model": model_name
     })
+
+@app.route('/api/feedback', methods=['POST'])
+def feedback_api():
+    """接收反馈并发送到QQ"""
+    data = request.json
+    text = data.get('text', '')
+    
+    # 保存反馈
+    feedback_file = MEMORY_DIR / "feedbacks.json"
+    if feedback_file.exists():
+        with open(feedback_file, "r") as f:
+            feedbacks = json.load(f)
+    else:
+        feedbacks = {"feedbacks": []}
+    
+    feedbacks["feedbacks"].append({
+        "text": text,
+        "time": datetime.now().isoformat()
+    })
+    
+    with open(feedback_file, "w") as f:
+        json.dump(feedbacks, f, ensure_ascii=False, indent=2)
+    
+    # 发送到QQ
+    try:
+        QQ_SEND = "node /home/admin/openclaw/workspace/multi-agent-skill/send_qq.js"
+        TARGET = "352983D4C8F36D56E350266944DF8DE1"
+        
+        msg = f"""📢 收到新反馈啦！
+
+{text}
+
+时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}"""
+        
+        subprocess.run(f"{QQ_SEND} {TARGET} \"{msg}\"", shell=True, capture_output=True)
+    except:
+        pass
+    
+    return jsonify({"success": True})
+
+@app.route('/api/status')
+def status_api():
+    """获取状态"""
+    return jsonify(get_status())
 
 if __name__ == '__main__':
     print("=" * 50)
-    print("🏠 家庭助手 v0.2")
+    print("🏠 家庭助手 v0.3")
     print("访问地址: http://localhost:8080")
     print("=" * 50)
     app.run(host='0.0.0.0', port=8080, debug=False)

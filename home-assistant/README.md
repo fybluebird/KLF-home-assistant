@@ -1,49 +1,75 @@
 # 🏠 家庭助手
 
-> 全家人都能用的智能语音助手
+> 全家人都能用的智能语音助手（v0.3）
 
 ## 功能特点
 
-- 🎤 语音对话 - 说话就能用
-- 👴👶 简单易用 - 5岁到80岁都能用
-- 🌐 网页界面 - 浏览器直接访问
+| 功能 | 说明 |
+|------|------|
+| 📖 讲故事 | 儿童故事、童话 |
+| 🎵 音乐 | 语音点歌 |
+| 🌤️ 天气 | 查询天气 |
+| ⏰ 提醒 | 语音设提醒 |
+| 😄 笑话 | 讲笑话 |
+| ❓ 问答 | 百科问答 |
+| 💬 反馈 | 提交问题/建议 |
 
-## 快速开始
+## 界面特点
 
-### 1. 启动服务
-
-```bash
-cd home-assistant
-python3 voice_server.py
-```
-
-### 2. 访问
-
-浏览器打开：http://localhost:8080
+- 🎨 大图标 + 柔和配色
+- 👶👴 适合小朋友和老人
+- 📱 手机/平板/电脑都能用
 
 ## 技术架构
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │  网页界面   │ ──▶ │  后端服务   │ ──▶ │  大模型    │
-│ (HTML/CSS)  │     │ (Python)   │     │ (Ollama)   │
+│ (图形界面)  │     │ (Flask)    │     │ (本地/云端) │
 └─────────────┘     └─────────────┘     └─────────────┘
+       │                   │
+       │                   ▼
+       │            ┌─────────────┐
+       └──────────▶ │ QQ/微信    │
+                    │ 反馈推送   │
+                    └─────────────┘
 ```
 
-## 文件结构
+## 快速开始
 
+### 1. 安装依赖
+
+```bash
+pip3 install flask requests
 ```
-home-assistant/
-├── index.html          # 网页界面
-├── voice_server.py    # 后端服务
-└── README.md
+
+### 2. 启动服务
+
+```bash
+cd home-assistant
+python3 home_assistant.py
 ```
 
-## 版本
+### 3. 访问
 
-- v0.1: 基础Demo（语音对话网页版）
-- v0.2: 添加后端API
-- v0.3: 添加语音识别
+浏览器打开：http://localhost:8080
+
+## 模型配置
+
+编辑 `model_config.json` 配置云端模型：
+
+```json
+{
+  "current_model": "ollama",
+  "ollama": {"enabled": true, "model": "qwen:0.5b"},
+  "openai": {"enabled": false, "api_key": "your-key"},
+  "qwen": {"enabled": false, "api_key": "your-key"}
+}
+```
+
+## 部署
+
+详见 docs/DEPLOY.md
 
 ## License
 
