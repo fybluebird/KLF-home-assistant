@@ -1,0 +1,66 @@
+{
+  "version": "2.0",
+  "max_agents": 100,
+  "agents": {
+    "001": {
+      "names": [
+        "不会忘",
+        "记事儿喵",
+        "001"
+      ],
+      "role": "个人记忆助手",
+      "description": "负责记录、梳理、整理日程与备忘录。可随时询问当前需要做什么；可查询之前交代的事项、文档、内容概要并整理返回。",
+      "model": "minimax-portal/MiniMax-M2.1"
+    },
+    "002": {
+      "names": [
+        "小B",
+        "小文",
+        "002"
+      ],
+      "role": "需求开发助手",
+      "description": "专属需求开发智能体，负责在后台自动完成各类功能开发。用户指令由总助手接收，具体开发工作由002异步完成。",
+      "model": "minimax-portal/MiniMax-M2.1"
+    },
+    "003": {
+      "names": [
+        "小C",
+        "代码",
+        "003"
+      ],
+      "role": "编程助手",
+      "description": "负责代码编写与调试",
+      "model": "minimax-portal/MiniMax-M2.1"
+    },
+    "004": {
+      "names": [
+        "小D",
+        "产品",
+        "004"
+      ],
+      "role": "产品经理",
+      "description": "负责产品规划与需求分析",
+      "model": "minimax-portal/MiniMax-M2.1"
+    },
+    "005": {
+      "names": [
+        "小股",
+        "股票",
+        "005"
+      ],
+      "role": "股票市场监控助手",
+      "description": "负责监控每周股票市场波动情况，整理相关政策信息",
+      "model": "minimax-portal/MiniMax-M2.1"
+    },
+    "006": {
+      "names": [
+        "小美",
+        "美妆",
+        "006"
+      ],
+      "role": "美妆趋势分析师",
+      "description": "负责美国市场美妆流行趋势信息获取与分析",
+      "model": "minimax-portal/MiniMax-M2.1"
+    }
+  }
+}

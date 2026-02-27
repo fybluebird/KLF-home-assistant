@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# 日志
+*.log
+logs/
+
+# OpenClaw
+.openclaw/
+*.jsonl
+
+# 临时文件
+*.tmp
+*.swp
+*~
+
+# 环境配置
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# 系统
+.DS_Store
+Thumbs.db
